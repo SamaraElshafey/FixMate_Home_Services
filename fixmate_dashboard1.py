@@ -12,7 +12,6 @@ from sklearn.metrics import confusion_matrix, classification_report, accuracy_sc
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-import plotly.express as px
 
 # Set page configuration
 st.set_page_config(
