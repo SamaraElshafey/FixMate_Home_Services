@@ -1,11 +1,14 @@
+# Import necessary libraries
+import streamlit as st
 import pandas as pd
 import numpy as np
+import pickle
+import os
 import matplotlib.pyplot as plt
 import seaborn as sns
-from datetime import datetime, timedelta
-import streamlit as st
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 
 # Set page configuration
 st.set_page_config(
@@ -142,7 +145,7 @@ def load_and_prepare_data(uploaded_file=None):
     # Load data or generate sample data
     if uploaded_file is not None:
         try:
-            df = pd.read_csv(uploaded_file)
+            df = pd.read_csv('FixMate_Home_Services.csv')
             st.success("✅ File successfully loaded!")
         except Exception as e:
             st.error(f"Error loading file: {e}. Using sample data instead.")
