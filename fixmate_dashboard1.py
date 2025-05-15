@@ -157,8 +157,24 @@ def load_and_prepare_data(uploaded_file=None):
     # Convert Date and Time columns to datetime
     df['Date'] = pd.to_datetime(df['Date'])
     
-    # Extract hour from Time column
-    df['Hour'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.hour
+    # Attempt to parse 'Time' robustly
+    def parse_time_column(time_series):
+        try:
+            return pd.to_datetime(time_series, format="%H:%M:%S").dt.hour
+        except:
+            try:
+                return pd.to_datetime(time_series, format="%I:%M %p").dt.hour
+            except:
+                # Try auto-infer format
+                return pd.to_datetime(time_series, errors='coerce').dt.hour
+    
+    df['Hour'] = parse_time_column(df['Time'])
+    
+    # Optional: Handle parsing failures
+    if df['Hour'].isna().all():
+        st.error("❌ Could not extract hour from the 'Time' column. Please check the format (e.g. 13:45:00 or 1:45 PM).")
+        st.stop()
+    
     
     # Create datetime column combining Date and Time
     df['DateTime'] = pd.to_datetime(df['Date'].dt.strftime('%Y-%m-%d') + ' ' + df['Time'])
