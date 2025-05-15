@@ -695,10 +695,4 @@ def main():
             - Implement client-specific follow-up processes
             """)
         
-        # Action items
-        st.subheader("Immediate Action Items")
-        st.success(" ")
-        1. **Reallocate ad budget**: Shift 20% of budget from lowest to highest ROI services
-        2. **Optimize ad schedules**: Configure campaigns to focus delivery during top 3 ROI hours
-        3. **Analyze technician performance**: Evaluate conversion rates by technician to identify training needs
-        4. **Service bundling**: Test service combinations based on client overlap analysis
+
