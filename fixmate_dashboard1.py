@@ -157,22 +157,16 @@ def load_and_prepare_data(uploaded_file=None):
     # Convert Date and Time columns to datetime
     df['Date'] = pd.to_datetime(df['Date'])
     
-    # Attempt to parse 'Time' robustly
-    def parse_time_column(time_series):
-        try:
-            return pd.to_datetime(time_series, format="%H:%M:%S").dt.hour
-        except:
-            try:
-                return pd.to_datetime(time_series, format="%I:%M %p").dt.hour
-            except:
-                # Try auto-infer format
-                return pd.to_datetime(time_series, errors='coerce').dt.hour
+    # Show time samples
+    st.write("Sample Time values:")
+    st.write(df['Time'].head())
     
-    df['Hour'] = parse_time_column(df['Time'])
+    # Convert safely
+    df['Hour'] = pd.to_datetime(df['Time'], errors='coerce').dt.hour
     
-    # Optional: Handle parsing failures
+    # Handle parsing errors
     if df['Hour'].isna().all():
-        st.error("❌ Could not extract hour from the 'Time' column. Please check the format (e.g. 13:45:00 or 1:45 PM).")
+        st.error("❌ Could not parse the 'Time' column. Please check the time format in your CSV.")
         st.stop()
     
     
