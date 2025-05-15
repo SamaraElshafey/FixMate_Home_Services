@@ -156,22 +156,19 @@ def load_and_prepare_data(uploaded_file=None):
     else:
         df = generate_sample_data()
         st.info("ℹ️ Using sample data. Upload your own CSV file for custom analysis.")
-    
     # Convert Date and Time columns to datetime
     df['Date'] = pd.to_datetime(df['Date'])
-    
-    # Show time samples
-    st.write("Sample Time values:")
-    st.write(df['Time'].head())
-    
-    # Convert safely
-    df['Hour'] = pd.to_datetime(df['Time'], errors='coerce').dt.hour
-    
-    # Handle parsing errors
+    # Show raw time values to debug
+    st.write("Sample Time values:", df['Time'].dropna().unique())
+    # Try combining Date and Time columns into one
+    df['Datetime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], errors='coerce')
+    df['Hour'] = df['Datetime'].dt.hour
+
+    # Handle parsing failure
     if df['Hour'].isna().all():
-        st.error("❌ Could not parse the 'Time' column. Please check the time format in your CSV.")
+        st.error("❌ Could not extract 'Hour' from 'Date' + 'Time'. Please check the format in your CSV.")
         st.stop()
-    
+   
     
     # Create datetime column combining Date and Time
     df['DateTime'] = pd.to_datetime(df['Date'].dt.strftime('%Y-%m-%d') + ' ' + df['Time'])
