@@ -161,8 +161,23 @@ def load_and_prepare_data(uploaded_file=None):
     # Show raw time values to debug
     st.write("Sample Time values:", df['Time'].dropna().unique())
     # Try combining Date and Time columns into one
-    df['Datetime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], errors='coerce')
-    df['Hour'] = df['Datetime'].dt.hour
+    # Normalize and map text time-of-day to representative hours
+    time_map = {
+        'morning': 9,
+        'afternoon': 14,
+        'evening': 18,
+        'night': 21
+    }
+    
+    df['Time'] = df['Time'].astype(str).str.lower().str.strip()
+    df['Hour'] = df['Time'].map(time_map)
+    
+    # Show result and catch errors
+    st.write("Unique Time values in data:", df['Time'].unique())
+    
+    if df['Hour'].isna().all():
+        st.error("❌ 'Time' values are not recognized. Please use only: Morning, Afternoon, Evening, Night.")
+        st.stop()
 
     # Handle parsing failure
     if df['Hour'].isna().all():
