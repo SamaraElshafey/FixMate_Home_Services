@@ -1,4 +1,3 @@
-
 # Import necessary libraries
 import streamlit as st
 import pandas as pd
@@ -38,8 +37,8 @@ def generate_sample_data():
     technicians = ['Smith, J.', 'Johnson, M.', 'Williams, R.', 'Brown, T.', 'Garcia, L.', 'Martinez, D.']
     client_types = ['New', 'Returning', 'Referred']
     
-    # Generate date range (last 90 days)
-    end_date = datetime.now()
+    # Generate date range (last 90 days) - Fixed to use a static date instead of datetime.now()
+    end_date = datetime(2023, 12, 31)  # Fixed end date
     start_date = end_date - timedelta(days=90)
     dates = pd.date_range(start=start_date, end=end_date, freq='D')
     
@@ -323,16 +322,24 @@ def generate_insights(df, avg_value_by_service, hourly_conversions, hourly_roi):
     top_hours_roi = hourly_roi.sort_values('ROI', ascending=False).head(3)['Hour'].tolist()
     
     # Calculate service growth
-    df['Month'] = pd.to_datetime(df['Date']).dt.to_period('M')
-    service_growth = df.groupby(['Month', 'Service Category'])['Conversions'].sum().unstack()
-    
+    service_growth = None
     try:
-        service_growth_pct = service_growth.pct_change().iloc[-1].sort_values(ascending=False)
-        fastest_growing = service_growth_pct.index[0]
-        growth_rate = service_growth_pct.iloc[0]
-    except:
-        fastest_growing = "Insufficient data"
-        growth_rate = 0
+        df['Month'] = pd.to_datetime(df['Date']).dt.to_period('M')
+        service_growth = df.groupby(['Month', 'Service Category'])['Conversions'].sum().unstack()
+    except Exception as e:
+        st.warning(f"Unable to calculate service growth: {e}")
+    
+    fastest_growing = "Insufficient data"
+    growth_rate = 0
+    
+    if service_growth is not None and not service_growth.empty and len(service_growth) > 1:
+        try:
+            service_growth_pct = service_growth.pct_change().iloc[-1].sort_values(ascending=False)
+            if not service_growth_pct.empty:
+                fastest_growing = service_growth_pct.index[0]
+                growth_rate = service_growth_pct.iloc[0]
+        except Exception as e:
+            st.warning(f"Error calculating growth percentages: {e}")
     
     # Client type analysis
     client_type_value = df.groupby('Client Type')['Customer Value'].mean().sort_values(ascending=False)
@@ -695,9 +702,3 @@ def main():
         2. **Optimize ad schedules**: Configure campaigns to focus delivery during top 3 ROI hours
         3. **Analyze technician performance**: Evaluate conversion rates by technician to identify training needs
         4. **Service bundling**: Test service combinations based on client overlap analysis
-        5. **Data enrichment**: Add geographic and demographic data to enable location-based optimization
-        """)
-
-# Run the Streamlit app
-if __name__ == "__main__":
-    main()
