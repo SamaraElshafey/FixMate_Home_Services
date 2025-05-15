@@ -1,3 +1,4 @@
+
 # Import necessary libraries
 import streamlit as st
 import pandas as pd
@@ -11,7 +12,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
+import plotly.express as px
 
 # Set page configuration
 st.set_page_config(
@@ -148,7 +150,7 @@ def load_and_prepare_data(uploaded_file=None):
     # Load data or generate sample data
     if uploaded_file is not None:
         try:
-            df = pd.read_csv('FixMate_Home_Services.csv')
+            df = pd.read_csv(uploaded_file)
             st.success("✅ File successfully loaded!")
         except Exception as e:
             st.error(f"Error loading file: {e}. Using sample data instead.")
@@ -156,37 +158,49 @@ def load_and_prepare_data(uploaded_file=None):
     else:
         df = generate_sample_data()
         st.info("ℹ️ Using sample data. Upload your own CSV file for custom analysis.")
-    # Convert Date and Time columns to datetime
+    
+    # Convert Date column to datetime
     df['Date'] = pd.to_datetime(df['Date'])
+    
     # Show raw time values to debug
     st.write("Sample Time values:", df['Time'].dropna().unique())
-    # Try combining Date and Time columns into one
-    # Normalize and map text time-of-day to representative hours
-    time_map = {
-        'morning': 9,
-        'afternoon': 14,
-        'evening': 18,
-        'night': 21
-    }
     
-    df['Time'] = df['Time'].astype(str).str.lower().str.strip()
-    df['Hour'] = df['Time'].map(time_map)
+    # Extract Hour from Time column
+    # Handle different possible time formats
+    def extract_hour(time_str):
+        time_str = str(time_str).lower().strip()
+        
+        # Case 1: Format like "09:00:00"
+        if ':' in time_str:
+            try:
+                return int(time_str.split(':')[0])
+            except:
+                pass
+        
+        # Case 2: Text descriptions like "morning", "afternoon", etc.
+        time_map = {
+            'morning': 9,
+            'afternoon': 14,
+            'evening': 18,
+            'night': 21
+        }
+        
+        for key, value in time_map.items():
+            if key in time_str:
+                return value
+        
+        # Default case
+        return 12  # Default to noon if time can't be parsed
     
-    # Show result and catch errors
-    st.write("Unique Time values in data:", df['Time'].unique())
+    # Extract hours
+    df['Hour'] = df['Time'].apply(extract_hour)
     
-    if df['Hour'].isna().all():
-        st.error("❌ 'Time' values are not recognized. Please use only: Morning, Afternoon, Evening, Night.")
-        st.stop()
-
-    # Handle parsing failure
-    if df['Hour'].isna().all():
-        st.error("❌ Could not extract 'Hour' from 'Date' + 'Time'. Please check the format in your CSV.")
-        st.stop()
-   
+    # Show result
+    st.write("Extracted hours:", df['Hour'].dropna().unique())
     
-    # Create datetime column combining Date and Time
-    df['DateTime'] = pd.to_datetime(df['Date'].dt.strftime('%Y-%m-%d') + ' ' + df['Time'])
+    # Create a proper DateTime column by combining Date and Hour
+    df['DateTime'] = pd.to_datetime(df['Date'].dt.strftime('%Y-%m-%d') + ' ' + 
+                                   df['Hour'].astype(str).str.zfill(2) + ':00:00')
     
     # Create ROI column (avoid division by zero)
     df['ROI'] = df.apply(lambda row: row['Revenue'] / row['Ad Spend'] if row['Ad Spend'] > 0 else 0, axis=1)
@@ -309,7 +323,7 @@ def generate_insights(df, avg_value_by_service, hourly_conversions, hourly_roi):
     top_hours_roi = hourly_roi.sort_values('ROI', ascending=False).head(3)['Hour'].tolist()
     
     # Calculate service growth
-    df['Month'] = df['Date'].dt.to_period('M')
+    df['Month'] = pd.to_datetime(df['Date']).dt.to_period('M')
     service_growth = df.groupby(['Month', 'Service Category'])['Conversions'].sum().unstack()
     
     try:
